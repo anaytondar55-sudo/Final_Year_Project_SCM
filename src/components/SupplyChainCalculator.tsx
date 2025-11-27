@@ -86,10 +86,10 @@ export function SupplyChainCalculator() {
   });
 
   const [analysisData, setAnalysisData] = useState<any[]>([]);
+  
+  const p = (v: string) => parseFloat(v) || 0;
 
   useEffect(() => {
-    const p = (v: string) => parseFloat(v) || 0;
-
     const sellingPrice = p(inputs.sellingPrice);
     const manufacturingCostPerTon = p(inputs.manufacturingCostPerTon);
     const storageCostPercent = p(inputs.storageCostPercent);
@@ -131,7 +131,6 @@ export function SupplyChainCalculator() {
 
   useEffect(() => {
     const calculateAnalysisData = () => {
-      const p = (v: string) => parseFloat(v) || 0;
       const rawData = [];
       
       const sellingPrice = p(inputs.sellingPrice);
@@ -224,7 +223,6 @@ export function SupplyChainCalculator() {
     }
 
     setInputs(prev => {
-        const p = (v: string) => parseFloat(v) || 0;
         const newInputs = { ...prev, [name]: value };
 
         const productionVolume = p(newInputs.productionVolume);
