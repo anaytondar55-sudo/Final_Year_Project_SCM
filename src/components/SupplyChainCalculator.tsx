@@ -156,7 +156,7 @@ export function SupplyChainCalculator() {
     if (mode) setInventoryVolumeMode(mode);
   };
 
-  const renderConstraint = (label: string, value: number, limit: number, isOk: boolean, unit: string) => {
+  function renderConstraint(label: string, value: number, limit: number, isOk: boolean, unit: string) {
     return (
       <div className="flex justify-between items-center text-sm">
         <div className="flex items-center">
@@ -168,7 +168,7 @@ export function SupplyChainCalculator() {
         </div>
       </div>
     );
-  };
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-8">
