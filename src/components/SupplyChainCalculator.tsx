@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-IN', {
@@ -24,7 +25,9 @@ export function SupplyChainCalculator() {
     sellingPrice: 40000,
     manufacturingCostPerTon: 36600,
     storageCostPercent: 1.75,
+    storageCostValue: 700, // 1.75% of 40000
     transportationCostPercent: 1.3,
+    transportationCostValue: 520, // 1.3% of 40000
     sustainabilityCostPerTonCO2: 300,
     co2EmissionFactor: 2.53,
     productionVolume: 50000,
@@ -32,6 +35,9 @@ export function SupplyChainCalculator() {
     inventoryVolume: 10000,
     transportedVolume: 50000,
   });
+
+  const [storageCostMode, setStorageCostMode] = useState<'percent' | 'value'>('percent');
+  const [transportationCostMode, setTransportationCostMode] = useState<'percent' | 'value'>('percent');
 
   const [results, setResults] = useState({
     revenue: 0,
@@ -98,7 +104,34 @@ export function SupplyChainCalculator() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setInputs(prev => ({ ...prev, [name]: value === '' ? 0 : parseFloat(value) }));
+    const numericValue = value === '' ? 0 : parseFloat(value);
+
+    setInputs(prev => {
+      const newInputs = { ...prev, [name]: numericValue };
+
+      if (name === 'sellingPrice') {
+        newInputs.storageCostValue = numericValue * (newInputs.storageCostPercent / 100);
+        newInputs.transportationCostValue = numericValue * (newInputs.transportationCostPercent / 100);
+      } else if (name === 'storageCostPercent') {
+        newInputs.storageCostValue = prev.sellingPrice * (numericValue / 100);
+      } else if (name === 'storageCostValue') {
+        newInputs.storageCostPercent = prev.sellingPrice > 0 ? (numericValue / prev.sellingPrice) * 100 : 0;
+      } else if (name === 'transportationCostPercent') {
+        newInputs.transportationCostValue = prev.sellingPrice * (numericValue / 100);
+      } else if (name === 'transportationCostValue') {
+        newInputs.transportationCostPercent = prev.sellingPrice > 0 ? (numericValue / prev.sellingPrice) * 100 : 0;
+      }
+      
+      return newInputs;
+    });
+  };
+
+  const handleStorageModeChange = (mode: 'percent' | 'value') => {
+    if (mode) setStorageCostMode(mode);
+  };
+
+  const handleTransportationModeChange = (mode: 'percent' | 'value') => {
+    if (mode) setTransportationCostMode(mode);
   };
 
   const renderConstraint = (label: string, value: number, limit: number, isOk: boolean, unit: string) => (
@@ -136,14 +169,41 @@ export function SupplyChainCalculator() {
                 <Label htmlFor="manufacturingCostPerTon">Manufacturing Cost per Ton (₹)</Label>
                 <Input type="number" id="manufacturingCostPerTon" name="manufacturingCostPerTon" value={inputs.manufacturingCostPerTon} onChange={handleInputChange} />
               </div>
+              
               <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="storageCostPercent">Storage/Holding Cost (%)</Label>
-                <Input type="number" id="storageCostPercent" name="storageCostPercent" value={inputs.storageCostPercent} onChange={handleInputChange} step="0.01" />
+                <div className="flex justify-between items-center mb-1">
+                  <Label htmlFor={storageCostMode === 'percent' ? 'storageCostPercent' : 'storageCostValue'}>
+                    Storage/Holding Cost
+                  </Label>
+                  <ToggleGroup type="single" size="sm" value={storageCostMode} onValueChange={handleStorageModeChange} className="border rounded-md">
+                    <ToggleGroupItem value="percent" aria-label="Set as percentage">%</ToggleGroupItem>
+                    <ToggleGroupItem value="value" aria-label="Set as value">₹</ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+                {storageCostMode === 'percent' ? (
+                  <Input type="number" id="storageCostPercent" name="storageCostPercent" value={inputs.storageCostPercent} onChange={handleInputChange} step="0.01" />
+                ) : (
+                  <Input type="number" id="storageCostValue" name="storageCostValue" value={inputs.storageCostValue} onChange={handleInputChange} />
+                )}
               </div>
+
               <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="transportationCostPercent">Transportation Cost (%)</Label>
-                <Input type="number" id="transportationCostPercent" name="transportationCostPercent" value={inputs.transportationCostPercent} onChange={handleInputChange} step="0.1" />
+                <div className="flex justify-between items-center mb-1">
+                  <Label htmlFor={transportationCostMode === 'percent' ? 'transportationCostPercent' : 'transportationCostValue'}>
+                    Transportation Cost
+                  </Label>
+                  <ToggleGroup type="single" size="sm" value={transportationCostMode} onValueChange={handleTransportationModeChange} className="border rounded-md">
+                    <ToggleGroupItem value="percent" aria-label="Set as percentage">%</ToggleGroupItem>
+                    <ToggleGroupItem value="value" aria-label="Set as value">₹</ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+                {transportationCostMode === 'percent' ? (
+                  <Input type="number" id="transportationCostPercent" name="transportationCostPercent" value={inputs.transportationCostPercent} onChange={handleInputChange} step="0.1" />
+                ) : (
+                  <Input type="number" id="transportationCostValue" name="transportationCostValue" value={inputs.transportationCostValue} onChange={handleInputChange} />
+                )}
               </div>
+
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="sustainabilityCostPerTonCO2">Sustainability Cost per CO₂ Ton (₹)</Label>
                 <Input type="number" id="sustainabilityCostPerTonCO2" name="sustainabilityCostPerTonCO2" value={inputs.sustainabilityCostPerTonCO2} onChange={handleInputChange} />
