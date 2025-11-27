@@ -132,7 +132,7 @@ export function SupplyChainCalculator() {
 
   useEffect(() => {
     const calculateAnalysisData = () => {
-      const data = [];
+      const rawData = [];
       const {
         sellingPrice,
         manufacturingCostPerTon,
@@ -161,7 +161,7 @@ export function SupplyChainCalculator() {
         const totalCost = manufacturingCost + storageCost + transportationCost + sustainabilityCost;
         const netProfit = revenue - totalCost;
 
-        data.push({
+        rawData.push({
           salesPercent,
           productionVolume,
           salesVolume,
@@ -173,7 +173,48 @@ export function SupplyChainCalculator() {
           totalEmissions,
         });
       }
-      setAnalysisData(data);
+
+      const processedData = [];
+      const transformPoint = (point: any) => ({
+        ...point,
+        netProfitPositive: point.netProfit >= 0 ? point.netProfit : null,
+        netProfitNegative: point.netProfit < 0 ? point.netProfit : null,
+      });
+
+      for (let i = 0; i < rawData.length; i++) {
+        const currentPoint = rawData[i];
+
+        if (i > 0) {
+          const prevPoint = rawData[i - 1];
+          // Check for sign change (crossing zero)
+          if (prevPoint.netProfit * currentPoint.netProfit < 0) {
+            const y1 = prevPoint.netProfit;
+            const y2 = currentPoint.netProfit;
+            const x1 = prevPoint.salesPercent;
+            const x2 = currentPoint.salesPercent;
+            
+            // Calculate the x-intercept
+            const interceptX = x1 - y1 * (x2 - x1) / (y2 - y1);
+            
+            // Interpolate other values for a smooth tooltip experience
+            const ratio = (interceptX - x1) / (x2 - x1);
+            const interceptRevenue = prevPoint.revenue + (currentPoint.revenue - prevPoint.revenue) * ratio;
+            const interceptTotalCost = prevPoint.totalCost + (currentPoint.totalCost - prevPoint.totalCost) * ratio;
+
+            const interceptPoint = {
+              ...prevPoint,
+              salesPercent: interceptX,
+              netProfit: 0,
+              revenue: interceptRevenue,
+              totalCost: interceptTotalCost,
+            };
+            processedData.push(transformPoint(interceptPoint));
+          }
+        }
+        processedData.push(transformPoint(currentPoint));
+      }
+
+      setAnalysisData(processedData);
     };
 
     calculateAnalysisData();
@@ -439,8 +480,9 @@ export function SupplyChainCalculator() {
                 </YAxis>
                 <Tooltip formatter={(value: number) => formatCurrency(value)} />
                 <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '20px' }} />
-                <Line type="monotone" dataKey="netProfit" name="Net Profit" stroke="#16a34a" activeDot={{ r: 6 }} strokeWidth={2} />
-                <Line type="monotone" dataKey="totalCost" name="Total Cost" stroke="#dc2626" strokeWidth={2} />
+                <Line type="monotone" dataKey="netProfitPositive" name="Net Profit" stroke="#16a34a" strokeWidth={2} dot={false} activeDot={{ r: 6 }} connectNulls />
+                <Line type="monotone" dataKey="netProfitNegative" name="Net Profit" stroke="#dc2626" strokeWidth={2} dot={false} activeDot={{ r: 6 }} connectNulls legendType="none" />
+                <Line type="monotone" dataKey="totalCost" name="Total Cost" stroke="#f97316" strokeWidth={2} />
                 <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#2563eb" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
@@ -473,7 +515,7 @@ export function SupplyChainCalculator() {
                 <TableBody>
                   {analysisData.map((data) => (
                     <TableRow key={data.salesPercent}>
-                      <TableCell className="font-medium">{data.salesPercent}%</TableCell>
+                      <TableCell className="font-medium">{data.salesPercent.toFixed(2)}%</TableCell>
                       <TableCell>{formatNumber(data.productionVolume)}</TableCell>
                       <TableCell>{formatNumber(data.salesVolume)}</TableCell>
                       <TableCell>{formatCurrency(data.manufacturingCost)}</TableCell>
