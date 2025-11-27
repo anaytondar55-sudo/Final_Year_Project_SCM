@@ -22,7 +22,7 @@ const formatNumber = (value: number) => {
 export function SupplyChainCalculator() {
   const [inputs, setInputs] = useState({
     sellingPrice: 40000,
-    manufacturingCostPercent: 91.5,
+    manufacturingCostPerTon: 36600,
     storageCostPercent: 1.75,
     transportationCostPercent: 1.3,
     sustainabilityCostPerTonCO2: 300,
@@ -54,7 +54,7 @@ export function SupplyChainCalculator() {
   useEffect(() => {
     const {
       sellingPrice,
-      manufacturingCostPercent,
+      manufacturingCostPerTon,
       storageCostPercent,
       transportationCostPercent,
       sustainabilityCostPerTonCO2,
@@ -67,7 +67,7 @@ export function SupplyChainCalculator() {
 
     // Calculations
     const revenue = sellingPrice * salesVolume;
-    const manufacturingCost = sellingPrice * (manufacturingCostPercent / 100) * productionVolume;
+    const manufacturingCost = manufacturingCostPerTon * productionVolume;
     const storageCost = sellingPrice * (storageCostPercent / 100) * inventoryVolume;
     const transportationCost = sellingPrice * (transportationCostPercent / 100) * transportedVolume;
     const totalEmissions = co2EmissionFactor * (productionVolume + transportedVolume);
@@ -133,8 +133,8 @@ export function SupplyChainCalculator() {
                 <Input type="number" id="sellingPrice" name="sellingPrice" value={inputs.sellingPrice} onChange={handleInputChange} />
               </div>
               <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="manufacturingCostPercent">Manufacturing Cost (%)</Label>
-                <Input type="number" id="manufacturingCostPercent" name="manufacturingCostPercent" value={inputs.manufacturingCostPercent} onChange={handleInputChange} step="0.1" />
+                <Label htmlFor="manufacturingCostPerTon">Manufacturing Cost per Ton (₹)</Label>
+                <Input type="number" id="manufacturingCostPerTon" name="manufacturingCostPerTon" value={inputs.manufacturingCostPerTon} onChange={handleInputChange} />
               </div>
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="storageCostPercent">Storage/Holding Cost (%)</Label>
