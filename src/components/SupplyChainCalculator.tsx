@@ -5,8 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Settings } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Button } from "@/components/ui/button";
+import { SettingsSheet } from "./SettingsSheet";
+import { SheetTrigger } from "@/components/ui/sheet";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-IN', {
@@ -35,6 +38,14 @@ export function SupplyChainCalculator() {
     inventoryVolumePercent: 0,
   });
 
+  const [hyperparameters, setHyperparameters] = useState({
+    maxInventory: 60000,
+    maxProduction: 60000,
+    maxSales: 60000,
+    maxEmissions: 150000,
+  });
+
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [salesVolumeMode, setSalesVolumeMode] = useState<'tons' | 'percent'>('tons');
   const [inventoryVolumeMode, setInventoryVolumeMode] = useState<'tons' | 'percent'>('tons');
 
@@ -69,7 +80,6 @@ export function SupplyChainCalculator() {
       inventoryVolume,
     } = inputs;
 
-    // Calculations
     const revenue = sellingPrice * salesVolume;
     const manufacturingCost = manufacturingCostPerTon * productionVolume;
     const storageCost = sellingPrice * (storageCostPercent / 100) * inventoryVolume;
@@ -90,15 +100,14 @@ export function SupplyChainCalculator() {
       netProfit,
     });
 
-    // Constraints
     setConstraints({
-      inventory: inventoryVolume <= 60000,
-      production: productionVolume <= 60000,
-      sales: salesVolume <= 60000,
-      emissions: totalEmissions <= 150000,
+      inventory: inventoryVolume <= hyperparameters.maxInventory,
+      production: productionVolume <= hyperparameters.maxProduction,
+      sales: salesVolume <= hyperparameters.maxSales,
+      emissions: totalEmissions <= hyperparameters.maxEmissions,
     });
 
-  }, [inputs]);
+  }, [inputs, hyperparameters]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -106,7 +115,6 @@ export function SupplyChainCalculator() {
 
     setInputs(prev => {
       const newInputs = { ...prev };
-
       (newInputs as any)[name] = numericValue;
 
       if (name === 'productionVolume') {
@@ -150,9 +158,23 @@ export function SupplyChainCalculator() {
 
   return (
     <div className="container mx-auto p-4 md:p-8">
-      <div className="text-center mb-8">
+      <div className="text-center mb-8 relative">
         <h1 className="text-3xl font-bold tracking-tight">Steel Supply Chain Optimization Calculator</h1>
         <p className="text-muted-foreground">Adjust parameters to analyze costs, profit, and operational constraints.</p>
+        <div className="absolute top-0 right-0">
+          <SettingsSheet 
+            hyperparameters={hyperparameters} 
+            onUpdate={setHyperparameters}
+            open={isSheetOpen}
+            onOpenChange={setIsSheetOpen}
+          >
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
+          </SettingsSheet>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -161,7 +183,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Input Parameters</CardTitle>
               <CardDescription>Adjust the core financial and environmental model assumptions.</CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="sellingPrice">Selling Price per Ton (₹)</Label>
@@ -281,7 +303,7 @@ export function SupplyChainCalculator() {
                   <span className={constraints.production ? "text-muted-foreground" : "text-red-500 font-semibold"}>Production Volume</span>
                 </div>
                 <div className={constraints.production ? "text-muted-foreground" : "text-red-500 font-semibold"}>
-                  {formatNumber(inputs.productionVolume)} / {formatNumber(60000)} tons
+                  {formatNumber(inputs.productionVolume)} / {formatNumber(hyperparameters.maxProduction)} tons
                 </div>
               </div>
               <div className="flex justify-between items-center text-sm">
@@ -290,7 +312,7 @@ export function SupplyChainCalculator() {
                   <span className={constraints.sales ? "text-muted-foreground" : "text-red-500 font-semibold"}>Sales Volume</span>
                 </div>
                 <div className={constraints.sales ? "text-muted-foreground" : "text-red-500 font-semibold"}>
-                  {formatNumber(inputs.salesVolume)} / {formatNumber(60000)} tons
+                  {formatNumber(inputs.salesVolume)} / {formatNumber(hyperparameters.maxSales)} tons
                 </div>
               </div>
               <div className="flex justify-between items-center text-sm">
@@ -299,7 +321,7 @@ export function SupplyChainCalculator() {
                   <span className={constraints.inventory ? "text-muted-foreground" : "text-red-500 font-semibold"}>Inventory Space</span>
                 </div>
                 <div className={constraints.inventory ? "text-muted-foreground" : "text-red-500 font-semibold"}>
-                  {formatNumber(inputs.inventoryVolume)} / {formatNumber(60000)} tons
+                  {formatNumber(inputs.inventoryVolume)} / {formatNumber(hyperparameters.maxInventory)} tons
                 </div>
               </div>
               <div className="flex justify-between items-center text-sm">
@@ -308,7 +330,7 @@ export function SupplyChainCalculator() {
                   <span className={constraints.emissions ? "text-muted-foreground" : "text-red-500 font-semibold"}>Total CO₂ Emission</span>
                 </div>
                 <div className={constraints.emissions ? "text-muted-foreground" : "text-red-500 font-semibold"}>
-                  {formatNumber(results.totalEmissions)} / {formatNumber(150000)} tons CO₂
+                  {formatNumber(results.totalEmissions)} / {formatNumber(hyperparameters.maxEmissions)} tons CO₂
                 </div>
               </div>
             </CardContent>
