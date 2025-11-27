@@ -44,17 +44,17 @@ const formatNumber = (value: number) => {
 
 export function SupplyChainCalculator() {
   const [inputs, setInputs] = useState({
-    sellingPrice: 40000,
-    manufacturingCostPerTon: 29000,
-    storageCostPercent: 1.75,
-    transportationCostPercent: 1.3,
-    sustainabilityCostPerTonCO2: 300,
-    co2EmissionFactor: 2.53,
-    productionVolume: 50000,
-    salesVolume: 50000,
-    salesVolumePercent: 100,
-    inventoryVolume: 0,
-    inventoryVolumePercent: 0,
+    sellingPrice: '40000',
+    manufacturingCostPerTon: '29000',
+    storageCostPercent: '1.75',
+    transportationCostPercent: '1.3',
+    sustainabilityCostPerTonCO2: '300',
+    co2EmissionFactor: '2.53',
+    productionVolume: '50000',
+    salesVolume: '50000',
+    salesVolumePercent: '100',
+    inventoryVolume: '0',
+    inventoryVolumePercent: '0',
   });
 
   const [hyperparameters, setHyperparameters] = useState({
@@ -65,8 +65,7 @@ export function SupplyChainCalculator() {
   });
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [salesVolumeMode, setSalesVolumeMode] = useState<'tons' | 'percent'>('tons');
-  const [inventoryVolumeMode, setInventoryVolumeMode] = useState<'tons' | 'percent'>('tons');
+  const [volumeMode, setVolumeMode] = useState<'tons' | 'percent'>('tons');
 
   const [results, setResults] = useState({
     revenue: 0,
@@ -89,17 +88,17 @@ export function SupplyChainCalculator() {
   const [analysisData, setAnalysisData] = useState<any[]>([]);
 
   useEffect(() => {
-    const {
-      sellingPrice,
-      manufacturingCostPerTon,
-      storageCostPercent,
-      transportationCostPercent,
-      sustainabilityCostPerTonCO2,
-      co2EmissionFactor,
-      productionVolume,
-      salesVolume,
-      inventoryVolume,
-    } = inputs;
+    const p = (v: string) => parseFloat(v) || 0;
+
+    const sellingPrice = p(inputs.sellingPrice);
+    const manufacturingCostPerTon = p(inputs.manufacturingCostPerTon);
+    const storageCostPercent = p(inputs.storageCostPercent);
+    const transportationCostPercent = p(inputs.transportationCostPercent);
+    const sustainabilityCostPerTonCO2 = p(inputs.sustainabilityCostPerTonCO2);
+    const co2EmissionFactor = p(inputs.co2EmissionFactor);
+    const productionVolume = p(inputs.productionVolume);
+    const salesVolume = p(inputs.salesVolume);
+    const inventoryVolume = p(inputs.inventoryVolume);
 
     const revenue = sellingPrice * salesVolume;
     const manufacturingCost = manufacturingCostPerTon * productionVolume;
@@ -132,16 +131,16 @@ export function SupplyChainCalculator() {
 
   useEffect(() => {
     const calculateAnalysisData = () => {
+      const p = (v: string) => parseFloat(v) || 0;
       const rawData = [];
-      const {
-        sellingPrice,
-        manufacturingCostPerTon,
-        storageCostPercent,
-        transportationCostPercent,
-        sustainabilityCostPerTonCO2,
-        co2EmissionFactor,
-        productionVolume,
-      } = inputs;
+      
+      const sellingPrice = p(inputs.sellingPrice);
+      const manufacturingCostPerTon = p(inputs.manufacturingCostPerTon);
+      const storageCostPercent = p(inputs.storageCostPercent);
+      const transportationCostPercent = p(inputs.transportationCostPercent);
+      const sustainabilityCostPerTonCO2 = p(inputs.sustainabilityCostPerTonCO2);
+      const co2EmissionFactor = p(inputs.co2EmissionFactor);
+      const productionVolume = p(inputs.productionVolume);
 
       if (productionVolume === 0) {
         setAnalysisData([]);
@@ -186,17 +185,14 @@ export function SupplyChainCalculator() {
 
         if (i > 0) {
           const prevPoint = rawData[i - 1];
-          // Check for sign change (crossing zero)
           if (prevPoint.netProfit * currentPoint.netProfit < 0) {
             const y1 = prevPoint.netProfit;
             const y2 = currentPoint.netProfit;
             const x1 = prevPoint.salesPercent;
             const x2 = currentPoint.salesPercent;
             
-            // Calculate the x-intercept
             const interceptX = x1 - y1 * (x2 - x1) / (y2 - y1);
             
-            // Interpolate other values for a smooth tooltip experience
             const ratio = (interceptX - x1) / (x2 - x1);
             const interceptRevenue = prevPoint.revenue + (currentPoint.revenue - prevPoint.revenue) * ratio;
             const interceptTotalCost = prevPoint.totalCost + (currentPoint.totalCost - prevPoint.totalCost) * ratio;
@@ -222,55 +218,65 @@ export function SupplyChainCalculator() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const numericValue = parseFloat(value);
-    const safeValue = isNaN(numericValue) ? 0 : numericValue;
+
+    if (value !== '' && !/^\d*\.?\d*$/.test(value)) {
+        return;
+    }
 
     setInputs(prev => {
-      const newInputs = { ...prev, [name]: safeValue };
+        const p = (v: string) => parseFloat(v) || 0;
+        const newInputs = { ...prev, [name]: value };
 
-      let { productionVolume, salesVolume, inventoryVolume } = newInputs;
+        const productionVolume = p(newInputs.productionVolume);
 
-      if (name === 'productionVolume') {
-        const salesRatio = prev.salesVolumePercent / 100;
-        salesVolume = productionVolume * salesRatio;
-        inventoryVolume = productionVolume - salesVolume;
-      } else if (name === 'salesVolume') {
-        inventoryVolume = productionVolume - salesVolume;
-      } else if (name === 'salesVolumePercent') {
-        const salesRatio = newInputs.salesVolumePercent / 100;
-        salesVolume = productionVolume * salesRatio;
-        inventoryVolume = productionVolume - salesVolume;
-      } else if (name === 'inventoryVolume') {
-        salesVolume = productionVolume - inventoryVolume;
-      } else if (name === 'inventoryVolumePercent') {
-        const inventoryRatio = newInputs.inventoryVolumePercent / 100;
-        inventoryVolume = productionVolume * inventoryRatio;
-        salesVolume = productionVolume - inventoryVolume;
-      }
+        let salesVolume: number;
+        let inventoryVolume: number;
 
-      newInputs.salesVolume = salesVolume;
-      newInputs.inventoryVolume = inventoryVolume;
+        if (name === 'productionVolume') {
+            salesVolume = productionVolume;
+            inventoryVolume = 0;
+        } else if (name === 'salesVolume') {
+            salesVolume = p(value);
+            inventoryVolume = productionVolume - salesVolume;
+        } else if (name === 'inventoryVolume') {
+            inventoryVolume = p(value);
+            salesVolume = productionVolume - inventoryVolume;
+        } else if (name === 'salesVolumePercent') {
+            let percent = p(value);
+            if (percent > 100) percent = 100;
+            if (percent < 0) percent = 0;
+            salesVolume = productionVolume * (percent / 100);
+            inventoryVolume = productionVolume - salesVolume;
+            newInputs.salesVolumePercent = String(percent);
+        } else if (name === 'inventoryVolumePercent') {
+            let percent = p(value);
+            if (percent > 100) percent = 100;
+            if (percent < 0) percent = 0;
+            inventoryVolume = productionVolume * (percent / 100);
+            salesVolume = productionVolume - inventoryVolume;
+            newInputs.inventoryVolumePercent = String(percent);
+        } else {
+            return newInputs;
+        }
 
-      if (newInputs.productionVolume > 0) {
-        newInputs.salesVolumePercent = (salesVolume / newInputs.productionVolume) * 100;
-        newInputs.inventoryVolumePercent = (inventoryVolume / newInputs.productionVolume) * 100;
-      } else {
-        newInputs.salesVolume = 0;
-        newInputs.inventoryVolume = 0;
-        newInputs.salesVolumePercent = 0;
-        newInputs.inventoryVolumePercent = 0;
-      }
-      
-      return newInputs;
+        if (productionVolume > 0) {
+            newInputs.salesVolume = String(salesVolume);
+            newInputs.inventoryVolume = String(inventoryVolume);
+            newInputs.salesVolumePercent = String((salesVolume / productionVolume) * 100);
+            newInputs.inventoryVolumePercent = String((inventoryVolume / productionVolume) * 100);
+        } else {
+            newInputs.salesVolume = '0';
+            newInputs.inventoryVolume = '0';
+            newInputs.salesVolumePercent = '0';
+            newInputs.inventoryVolumePercent = '0';
+        }
+
+        return newInputs;
     });
   };
 
-  const handleSalesModeChange = (mode: 'tons' | 'percent') => {
-    if (mode) setSalesVolumeMode(mode);
-  };
-
-  const handleInventoryModeChange = (mode: 'tons' | 'percent') => {
-    if (mode) setInventoryVolumeMode(mode);
+  const handleVolumeModeChange = (mode: 'tons' | 'percent') => {
+    if (mode) setVolumeMode(mode);
   };
 
   return (
@@ -304,27 +310,27 @@ export function SupplyChainCalculator() {
             <CardContent className="space-y-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="sellingPrice">Selling Price per Ton (₹)</Label>
-                <Input type="number" id="sellingPrice" name="sellingPrice" value={inputs.sellingPrice} onChange={handleInputChange} />
+                <Input type="text" inputMode="decimal" id="sellingPrice" name="sellingPrice" value={inputs.sellingPrice} onChange={handleInputChange} />
               </div>
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="manufacturingCostPerTon">Manufacturing Cost per Ton (₹)</Label>
-                <Input type="number" id="manufacturingCostPerTon" name="manufacturingCostPerTon" value={inputs.manufacturingCostPerTon} onChange={handleInputChange} />
+                <Input type="text" inputMode="decimal" id="manufacturingCostPerTon" name="manufacturingCostPerTon" value={inputs.manufacturingCostPerTon} onChange={handleInputChange} />
               </div>
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="storageCostPercent">Storage/Holding Cost (%)</Label>
-                <Input type="number" id="storageCostPercent" name="storageCostPercent" value={inputs.storageCostPercent} onChange={handleInputChange} step="0.01" />
+                <Input type="text" inputMode="decimal" id="storageCostPercent" name="storageCostPercent" value={inputs.storageCostPercent} onChange={handleInputChange} />
               </div>
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="transportationCostPercent">Transportation Cost (%)</Label>
-                <Input type="number" id="transportationCostPercent" name="transportationCostPercent" value={inputs.transportationCostPercent} onChange={handleInputChange} step="0.1" />
+                <Input type="text" inputMode="decimal" id="transportationCostPercent" name="transportationCostPercent" value={inputs.transportationCostPercent} onChange={handleInputChange} />
               </div>
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="sustainabilityCostPerTonCO2">Sustainability Cost per CO₂ Ton (₹)</Label>
-                <Input type="number" id="sustainabilityCostPerTonCO2" name="sustainabilityCostPerTonCO2" value={inputs.sustainabilityCostPerTonCO2} onChange={handleInputChange} />
+                <Input type="text" inputMode="decimal" id="sustainabilityCostPerTonCO2" name="sustainabilityCostPerTonCO2" value={inputs.sustainabilityCostPerTonCO2} onChange={handleInputChange} />
               </div>
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="co2EmissionFactor">CO₂ Emission Factor (CO₂/ton)</Label>
-                <Input type="number" id="co2EmissionFactor" name="co2EmissionFactor" value={inputs.co2EmissionFactor} onChange={handleInputChange} step="0.01" />
+                <Input type="text" inputMode="decimal" id="co2EmissionFactor" name="co2EmissionFactor" value={inputs.co2EmissionFactor} onChange={handleInputChange} />
               </div>
             </CardContent>
           </Card>
@@ -337,40 +343,29 @@ export function SupplyChainCalculator() {
             <CardContent className="space-y-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="productionVolume">Production Volume (Tons)</Label>
-                <Input type="number" id="productionVolume" name="productionVolume" value={inputs.productionVolume} onChange={handleInputChange} />
+                <Input type="text" inputMode="decimal" id="productionVolume" name="productionVolume" value={inputs.productionVolume} onChange={handleInputChange} />
               </div>
               
               <div className="grid w-full items-center gap-1.5">
                 <div className="flex justify-between items-center mb-1">
-                  <Label htmlFor={salesVolumeMode === 'tons' ? 'salesVolume' : 'salesVolumePercent'}>
-                    Sales Volume
-                  </Label>
-                  <ToggleGroup type="single" size="sm" value={salesVolumeMode} onValueChange={handleSalesModeChange} className="border rounded-md">
+                  <Label>Sales & Inventory</Label>
+                  <ToggleGroup type="single" size="sm" value={volumeMode} onValueChange={handleVolumeModeChange} className="border rounded-md">
                     <ToggleGroupItem value="tons" aria-label="Set as tons">Tons</ToggleGroupItem>
                     <ToggleGroupItem value="percent" aria-label="Set as percentage">%</ToggleGroupItem>
                   </ToggleGroup>
                 </div>
-                {salesVolumeMode === 'tons' ? (
-                  <Input type="number" id="salesVolume" name="salesVolume" value={inputs.salesVolume} onChange={handleInputChange} />
+                {volumeMode === 'tons' ? (
+                  <Input type="text" inputMode="decimal" id="salesVolume" name="salesVolume" value={inputs.salesVolume} onChange={handleInputChange} placeholder="Sales Volume (Tons)" />
                 ) : (
-                  <Input type="number" id="salesVolumePercent" name="salesVolumePercent" value={inputs.salesVolumePercent} onChange={handleInputChange} step="0.1" />
+                  <Input type="text" inputMode="decimal" id="salesVolumePercent" name="salesVolumePercent" value={inputs.salesVolumePercent} onChange={handleInputChange} placeholder="Sales Volume (%)" />
                 )}
               </div>
 
               <div className="grid w-full items-center gap-1.5">
-                <div className="flex justify-between items-center mb-1">
-                  <Label htmlFor={inventoryVolumeMode === 'tons' ? 'inventoryVolume' : 'inventoryVolumePercent'}>
-                    Inventory Volume
-                  </Label>
-                  <ToggleGroup type="single" size="sm" value={inventoryVolumeMode} onValueChange={handleInventoryModeChange} className="border rounded-md">
-                    <ToggleGroupItem value="tons" aria-label="Set as tons">Tons</ToggleGroupItem>
-                    <ToggleGroupItem value="percent" aria-label="Set as percentage">%</ToggleGroupItem>
-                  </ToggleGroup>
-                </div>
-                {inventoryVolumeMode === 'tons' ? (
-                  <Input type="number" id="inventoryVolume" name="inventoryVolume" value={inputs.inventoryVolume} onChange={handleInputChange} />
+                {volumeMode === 'tons' ? (
+                  <Input type="text" inputMode="decimal" id="inventoryVolume" name="inventoryVolume" value={inputs.inventoryVolume} onChange={handleInputChange} placeholder="Inventory Volume (Tons)" />
                 ) : (
-                  <Input type="number" id="inventoryVolumePercent" name="inventoryVolumePercent" value={inputs.inventoryVolumePercent} onChange={handleInputChange} step="0.1" />
+                  <Input type="text" inputMode="decimal" id="inventoryVolumePercent" name="inventoryVolumePercent" value={inputs.inventoryVolumePercent} onChange={handleInputChange} placeholder="Inventory Volume (%)" />
                 )}
               </div>
             </CardContent>
@@ -420,7 +415,7 @@ export function SupplyChainCalculator() {
                   <span className={constraints.production ? "text-muted-foreground" : "text-red-500 font-semibold"}>Production Volume</span>
                 </div>
                 <div className={constraints.production ? "text-muted-foreground" : "text-red-500 font-semibold"}>
-                  {formatNumber(inputs.productionVolume)} / {formatNumber(hyperparameters.maxProduction)} tons
+                  {formatNumber(p(inputs.productionVolume))} / {formatNumber(hyperparameters.maxProduction)} tons
                 </div>
               </div>
               <div className="flex justify-between items-center text-sm">
@@ -429,7 +424,7 @@ export function SupplyChainCalculator() {
                   <span className={constraints.sales ? "text-muted-foreground" : "text-red-500 font-semibold"}>Sales Volume</span>
                 </div>
                 <div className={constraints.sales ? "text-muted-foreground" : "text-red-500 font-semibold"}>
-                  {formatNumber(inputs.salesVolume)} / {formatNumber(hyperparameters.maxSales)} tons
+                  {formatNumber(p(inputs.salesVolume))} / {formatNumber(hyperparameters.maxSales)} tons
                 </div>
               </div>
               <div className="flex justify-between items-center text-sm">
@@ -438,7 +433,7 @@ export function SupplyChainCalculator() {
                   <span className={constraints.inventory ? "text-muted-foreground" : "text-red-500 font-semibold"}>Inventory Space</span>
                 </div>
                 <div className={constraints.inventory ? "text-muted-foreground" : "text-red-500 font-semibold"}>
-                  {formatNumber(inputs.inventoryVolume)} / {formatNumber(hyperparameters.maxInventory)} tons
+                  {formatNumber(p(inputs.inventoryVolume))} / {formatNumber(hyperparameters.maxInventory)} tons
                 </div>
               </div>
               <div className="flex justify-between items-center text-sm">
