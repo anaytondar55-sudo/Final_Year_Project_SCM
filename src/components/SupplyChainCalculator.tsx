@@ -39,7 +39,7 @@ const formatCurrency = (value: number) => {
 };
 
 const formatNumber = (value: number) => {
-  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(value);
+    return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(value);
 };
 
 export function SupplyChainCalculator() {
@@ -86,7 +86,7 @@ export function SupplyChainCalculator() {
   });
 
   const [analysisData, setAnalysisData] = useState<any[]>([]);
-
+  
   const p = (v: string) => parseFloat(v) || 0;
 
   useEffect(() => {
@@ -132,7 +132,7 @@ export function SupplyChainCalculator() {
   useEffect(() => {
     const calculateAnalysisData = () => {
       const rawData = [];
-
+      
       const sellingPrice = p(inputs.sellingPrice);
       const manufacturingCostPerTon = p(inputs.manufacturingCostPerTon);
       const storageCostPercent = p(inputs.storageCostPercent);
@@ -189,9 +189,9 @@ export function SupplyChainCalculator() {
             const y2 = currentPoint.netProfit;
             const x1 = prevPoint.salesPercent;
             const x2 = currentPoint.salesPercent;
-
+            
             const interceptX = x1 - y1 * (x2 - x1) / (y2 - y1);
-
+            
             const ratio = (interceptX - x1) / (x2 - x1);
             const interceptRevenue = prevPoint.revenue + (currentPoint.revenue - prevPoint.revenue) * ratio;
             const interceptTotalCost = prevPoint.totalCost + (currentPoint.totalCost - prevPoint.totalCost) * ratio;
@@ -227,46 +227,55 @@ export function SupplyChainCalculator() {
 
       const productionVolume = p(newInputs.productionVolume);
 
-      let salesVolume: number;
-      let inventoryVolume: number;
+      let salesVolume: number = p(newInputs.salesVolume);
+      let inventoryVolume: number = p(newInputs.inventoryVolume);
 
       if (name === 'productionVolume') {
-        salesVolume = productionVolume;
-        inventoryVolume = 0;
+        const salesPercent = p(newInputs.salesVolumePercent);
+        salesVolume = productionVolume * (salesPercent / 100);
+        inventoryVolume = productionVolume - salesVolume;
       } else if (name === 'salesVolume') {
-        salesVolume = p(value);
         inventoryVolume = productionVolume - salesVolume;
       } else if (name === 'inventoryVolume') {
-        inventoryVolume = p(value);
         salesVolume = productionVolume - inventoryVolume;
       } else if (name === 'salesVolumePercent') {
         let percent = p(value);
-        if (percent > 100) percent = 100;
-        if (percent < 0) percent = 0;
+        if (percent > 100) {
+          percent = 100;
+          newInputs.salesVolumePercent = '100';
+        }
         salesVolume = productionVolume * (percent / 100);
         inventoryVolume = productionVolume - salesVolume;
-        newInputs.salesVolumePercent = String(percent);
       } else if (name === 'inventoryVolumePercent') {
         let percent = p(value);
-        if (percent > 100) percent = 100;
-        if (percent < 0) percent = 0;
+        if (percent > 100) {
+          percent = 100;
+          newInputs.inventoryVolumePercent = '100';
+        }
         inventoryVolume = productionVolume * (percent / 100);
         salesVolume = productionVolume - inventoryVolume;
-        newInputs.inventoryVolumePercent = String(percent);
       } else {
         return newInputs;
       }
 
       if (productionVolume > 0) {
-        newInputs.salesVolume = String(salesVolume);
-        newInputs.inventoryVolume = String(inventoryVolume);
-        newInputs.salesVolumePercent = String((salesVolume / productionVolume) * 100);
-        newInputs.inventoryVolumePercent = String((inventoryVolume / productionVolume) * 100);
+        if (name !== 'salesVolume') {
+          newInputs.salesVolume = String(salesVolume);
+        }
+        if (name !== 'inventoryVolume') {
+          newInputs.inventoryVolume = String(inventoryVolume);
+        }
+        if (name !== 'salesVolumePercent') {
+          newInputs.salesVolumePercent = String(parseFloat(((salesVolume / productionVolume) * 100).toFixed(2)));
+        }
+        if (name !== 'inventoryVolumePercent') {
+          newInputs.inventoryVolumePercent = String(parseFloat(((inventoryVolume / productionVolume) * 100).toFixed(2)));
+        }
       } else {
-        newInputs.salesVolume = '0';
-        newInputs.inventoryVolume = '0';
-        newInputs.salesVolumePercent = '0';
-        newInputs.inventoryVolumePercent = '0';
+        if (name !== 'salesVolume') newInputs.salesVolume = '0';
+        if (name !== 'inventoryVolume') newInputs.inventoryVolume = '0';
+        if (name !== 'salesVolumePercent') newInputs.salesVolumePercent = '0';
+        if (name !== 'inventoryVolumePercent') newInputs.inventoryVolumePercent = '0';
       }
 
       return newInputs;
@@ -283,8 +292,8 @@ export function SupplyChainCalculator() {
         <h1 className="text-3xl font-bold tracking-tight">Steel Supply Chain Optimization Calculator</h1>
         <p className="text-muted-foreground">Adjust parameters to analyze costs, profit, and operational constraints.</p>
         <div className="absolute top-0 right-0">
-          <SettingsSheet
-            hyperparameters={hyperparameters}
+          <SettingsSheet 
+            hyperparameters={hyperparameters} 
             onUpdate={setHyperparameters}
             open={isSheetOpen}
             onOpenChange={setIsSheetOpen}
@@ -343,10 +352,10 @@ export function SupplyChainCalculator() {
                 <Label htmlFor="productionVolume">Production Volume (Tons)</Label>
                 <Input type="text" inputMode="decimal" id="productionVolume" name="productionVolume" value={inputs.productionVolume} onChange={handleInputChange} />
               </div>
-
-              <div className="grid w-full items-center">
-                <div className="flex justify-between items-center">
-                  <Label>Sales</Label>
+              
+              <div className="grid w-full items-center gap-1.5">
+                <div className="flex justify-between items-center mb-1">
+                  <Label>Sales & Inventory</Label>
                   <ToggleGroup type="single" size="sm" value={volumeMode} onValueChange={handleVolumeModeChange} className="border rounded-md">
                     <ToggleGroupItem value="tons" aria-label="Set as tons">Tons</ToggleGroupItem>
                     <ToggleGroupItem value="percent" aria-label="Set as percentage">%</ToggleGroupItem>
@@ -359,15 +368,12 @@ export function SupplyChainCalculator() {
                 )}
               </div>
 
-              <div className="">
-                <Label>Inventory</Label>
-                <div className="grid w-full items-center gap-1.5">
-                  {volumeMode === 'tons' ? (
-                    <Input type="text" inputMode="decimal" id="inventoryVolume" name="inventoryVolume" value={inputs.inventoryVolume} onChange={handleInputChange} placeholder="Inventory Volume (Tons)" />
-                  ) : (
-                    <Input type="text" inputMode="decimal" id="inventoryVolumePercent" name="inventoryVolumePercent" value={inputs.inventoryVolumePercent} onChange={handleInputChange} placeholder="Inventory Volume (%)" />
-                  )}
-                </div>
+              <div className="grid w-full items-center gap-1.5">
+                {volumeMode === 'tons' ? (
+                  <Input type="text" inputMode="decimal" id="inventoryVolume" name="inventoryVolume" value={inputs.inventoryVolume} onChange={handleInputChange} placeholder="Inventory Volume (Tons)" />
+                ) : (
+                  <Input type="text" inputMode="decimal" id="inventoryVolumePercent" name="inventoryVolumePercent" value={inputs.inventoryVolumePercent} onChange={handleInputChange} placeholder="Inventory Volume (%)" />
+                )}
               </div>
             </CardContent>
           </Card>
@@ -380,27 +386,27 @@ export function SupplyChainCalculator() {
               <CardDescription>Calculated costs and profit based on your inputs.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between font-semibold">
-                <span>Total Revenue</span>
-                <span>{formatCurrency(results.revenue)}</span>
-              </div>
-              <Separator />
-              <div className="text-muted-foreground space-y-1 pt-1">
-                <div className="flex justify-between"><span>Manufacturing Cost</span><span>{formatCurrency(results.manufacturingCost)}</span></div>
-                <div className="flex justify-between"><span>Storage Cost</span><span>{formatCurrency(results.storageCost)}</span></div>
-                <div className="flex justify-between"><span>Transportation Cost</span><span>{formatCurrency(results.transportationCost)}</span></div>
-                <div className="flex justify-between"><span>Sustainability Cost</span><span>{formatCurrency(results.sustainabilityCost)}</span></div>
-              </div>
-              <Separator />
-              <div className="flex justify-between font-semibold pt-1">
-                <span>Total Cost</span>
-                <span>{formatCurrency(results.totalCost)}</span>
-              </div>
-              <Separator />
-              <div className={`flex justify-between font-bold text-lg pt-1 ${results.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                <span>Net Profit</span>
-                <span>{formatCurrency(results.netProfit)}</span>
-              </div>
+                <div className="flex justify-between font-semibold">
+                    <span>Total Revenue</span>
+                    <span>{formatCurrency(results.revenue)}</span>
+                </div>
+                <Separator />
+                <div className="text-muted-foreground space-y-1 pt-1">
+                    <div className="flex justify-between"><span>Manufacturing Cost</span><span>{formatCurrency(results.manufacturingCost)}</span></div>
+                    <div className="flex justify-between"><span>Storage Cost</span><span>{formatCurrency(results.storageCost)}</span></div>
+                    <div className="flex justify-between"><span>Transportation Cost</span><span>{formatCurrency(results.transportationCost)}</span></div>
+                    <div className="flex justify-between"><span>Sustainability Cost</span><span>{formatCurrency(results.sustainabilityCost)}</span></div>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-semibold pt-1">
+                    <span>Total Cost</span>
+                    <span>{formatCurrency(results.totalCost)}</span>
+                </div>
+                <Separator />
+                <div className={`flex justify-between font-bold text-lg pt-1 ${results.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span>Net Profit</span>
+                    <span>{formatCurrency(results.netProfit)}</span>
+                </div>
             </CardContent>
           </Card>
 
@@ -458,18 +464,18 @@ export function SupplyChainCalculator() {
             <CardDescription>
               Net profit, total cost, and revenue based on sales percentage (for current production volume).
             </CardDescription>
-          </CardHeader>
+          </Header>
           <CardContent>
             <ResponsiveContainer width="100%" height={400}>
               <LineChart data={analysisData} margin={{ top: 5, right: 20, left: 50, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="salesPercent"
+                <XAxis 
+                  dataKey="salesPercent" 
                   unit="%"
                 >
                   <RechartsLabel value="Sales Percentage (%)" position="insideBottom" offset={-15} />
                 </XAxis>
-                <YAxis
+                <YAxis 
                   tickFormatter={(value) => new Intl.NumberFormat('en-IN', { notation: 'compact', compactDisplay: 'short' }).format(value)}
                 >
                   <RechartsLabel value="Amount (INR)" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
@@ -490,8 +496,8 @@ export function SupplyChainCalculator() {
             <CardTitle>Detailed Analysis Data</CardTitle>
             <CardDescription>
               Breakdown of financials and emissions at different sales percentages.
-            </CardDescription>
-          </CardHeader>
+            </Description>
+          </Header>
           <CardContent>
             <div className="max-h-96 overflow-y-auto relative">
               <Table>
