@@ -18,7 +18,7 @@ const formatCurrency = (value: number) => {
 
 const formatNumber = (value: number) => {
     return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(value);
-}
+};
 
 export function SupplyChainCalculator() {
   const [inputs, setInputs] = useState({
@@ -132,17 +132,19 @@ export function SupplyChainCalculator() {
     if (mode) setInventoryVolumeMode(mode);
   };
 
-  const renderConstraint = (label: string, value: number, limit: number, isOk: boolean, unit: string) => (
-    <div className="flex justify-between items-center text-sm">
-      <div className="flex items-center">
-        {isOk ? <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> : <AlertCircle className="h-4 w-4 mr-2 text-red-500" />}
-        <span className={isOk ? "text-muted-foreground" : "text-red-500 font-semibold"}>{label}</span>
+  const renderConstraint = (label: string, value: number, limit: number, isOk: boolean, unit: string) => {
+    return (
+      <div className="flex justify-between items-center text-sm">
+        <div className="flex items-center">
+          {isOk ? <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> : <AlertCircle className="h-4 w-4 mr-2 text-red-500" />}
+          <span className={isOk ? "text-muted-foreground" : "text-red-500 font-semibold"}>{label}</span>
+        </div>
+        <div className={isOk ? "text-muted-foreground" : "text-red-500 font-semibold"}>
+          {formatNumber(value)} / {formatNumber(limit)} {unit}
+        </div>
       </div>
-      <div className={isOk ? "text-muted-foreground" : "text-red-500 font-semibold"}>
-        {formatNumber(value)} / {formatNumber(limit)} {unit}
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -157,7 +159,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Input Parameters</CardTitle>
               <CardDescription>Adjust the core financial and environmental model assumptions.</CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="sellingPrice">Selling Price per Ton (₹)</Label>
@@ -190,7 +192,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Operational Inputs</CardTitle>
               <CardDescription>Enter the volumes you want to test or optimize.</CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="productionVolume">Production Volume (Tons)</Label>
@@ -269,7 +271,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Constraints Checker</CardTitle>
               <CardDescription>Feasibility of the current operational inputs.</CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent className="space-y-3">
               {renderConstraint("Production Volume", inputs.productionVolume, 60000, constraints.production, "tons")}
               {renderConstraint("Sales Volume", inputs.salesVolume, 60000, constraints.sales, "tons")}
