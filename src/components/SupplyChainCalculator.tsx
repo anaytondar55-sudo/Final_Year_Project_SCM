@@ -141,8 +141,8 @@ export function SupplyChainCalculator() {
       newInputs.inventoryVolume = inventoryVolume;
 
       if (newInputs.productionVolume > 0) {
-        newInputs.salesVolumePercent = (salesVolume / productionVolume) * 100;
-        newInputs.inventoryVolumePercent = (inventoryVolume / productionVolume) * 100;
+        newInputs.salesVolumePercent = (salesVolume / newInputs.productionVolume) * 100;
+        newInputs.inventoryVolumePercent = (inventoryVolume / newInputs.productionVolume) * 100;
       } else {
         newInputs.salesVolume = 0;
         newInputs.inventoryVolume = 0;
@@ -222,7 +222,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Operational Inputs</CardTitle>
               <CardDescription>Enter the volumes you want to test or optimize.</CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="productionVolume">Production Volume (Tons)</Label>
@@ -271,7 +271,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Results</CardTitle>
               <CardDescription>Calculated costs and profit based on your inputs.</CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between font-semibold">
                     <span>Total Revenue</span>
@@ -301,7 +301,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Constraints Checker</CardTitle>
               <CardDescription>Feasibility of the current operational inputs.</CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center text-sm">
                 <div className="flex items-center">
