@@ -111,37 +111,43 @@ export function SupplyChainCalculator() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const numericValue = value === '' ? 0 : parseFloat(value);
+    const numericValue = parseFloat(value);
+    const safeValue = isNaN(numericValue) ? 0 : numericValue;
 
     setInputs(prev => {
-      const newInputs = { ...prev };
-      (newInputs as any)[name] = numericValue;
+      const newInputs = { ...prev, [name]: safeValue };
+
+      let { productionVolume, salesVolume, inventoryVolume } = newInputs;
 
       if (name === 'productionVolume') {
-        newInputs.salesVolume = newInputs.productionVolume * (prev.salesVolumePercent / 100);
-        newInputs.inventoryVolume = newInputs.productionVolume - newInputs.salesVolume;
+        const salesRatio = prev.salesVolumePercent / 100;
+        salesVolume = productionVolume * salesRatio;
+        inventoryVolume = productionVolume - salesVolume;
       } else if (name === 'salesVolume') {
-        newInputs.inventoryVolume = newInputs.productionVolume - newInputs.salesVolume;
+        inventoryVolume = productionVolume - salesVolume;
       } else if (name === 'salesVolumePercent') {
-        newInputs.salesVolume = newInputs.productionVolume * (newInputs.salesVolumePercent / 100);
-        newInputs.inventoryVolume = newInputs.productionVolume - newInputs.salesVolume;
+        const salesRatio = newInputs.salesVolumePercent / 100;
+        salesVolume = productionVolume * salesRatio;
+        inventoryVolume = productionVolume - salesVolume;
       } else if (name === 'inventoryVolume') {
-        newInputs.salesVolume = newInputs.productionVolume - newInputs.inventoryVolume;
+        salesVolume = productionVolume - inventoryVolume;
       } else if (name === 'inventoryVolumePercent') {
-        newInputs.inventoryVolume = newInputs.productionVolume * (newInputs.inventoryVolumePercent / 100);
-        newInputs.salesVolume = newInputs.productionVolume - newInputs.inventoryVolume;
+        const inventoryRatio = newInputs.inventoryVolumePercent / 100;
+        inventoryVolume = productionVolume * inventoryRatio;
+        salesVolume = productionVolume - inventoryVolume;
       }
 
-      if (['productionVolume', 'salesVolume', 'salesVolumePercent', 'inventoryVolume', 'inventoryVolumePercent'].includes(name)) {
-        if (newInputs.productionVolume > 0) {
-          newInputs.salesVolumePercent = (newInputs.salesVolume / newInputs.productionVolume) * 100;
-          newInputs.inventoryVolumePercent = (newInputs.inventoryVolume / newInputs.productionVolume) * 100;
-        } else {
-          newInputs.salesVolume = 0;
-          newInputs.inventoryVolume = 0;
-          newInputs.salesVolumePercent = 0;
-          newInputs.inventoryVolumePercent = 0;
-        }
+      newInputs.salesVolume = salesVolume;
+      newInputs.inventoryVolume = inventoryVolume;
+
+      if (newInputs.productionVolume > 0) {
+        newInputs.salesVolumePercent = (salesVolume / productionVolume) * 100;
+        newInputs.inventoryVolumePercent = (inventoryVolume / productionVolume) * 100;
+      } else {
+        newInputs.salesVolume = 0;
+        newInputs.inventoryVolume = 0;
+        newInputs.salesVolumePercent = 0;
+        newInputs.inventoryVolumePercent = 0;
       }
       
       return newInputs;
