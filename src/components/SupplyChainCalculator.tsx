@@ -1,0 +1,231 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
+const formatNumber = (value: number) => {
+    return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(value);
+}
+
+export function SupplyChainCalculator() {
+  const [inputs, setInputs] = useState({
+    sellingPrice: 40000,
+    manufacturingCostPercent: 91.5,
+    storageCostPercent: 1.75,
+    transportationCostPercent: 1.3,
+    sustainabilityCostPerTonCO2: 300,
+    co2EmissionFactor: 2.53,
+    productionVolume: 50000,
+    salesVolume: 50000,
+    inventoryVolume: 10000,
+    transportedVolume: 50000,
+  });
+
+  const [results, setResults] = useState({
+    revenue: 0,
+    manufacturingCost: 0,
+    storageCost: 0,
+    transportationCost: 0,
+    totalEmissions: 0,
+    sustainabilityCost: 0,
+    totalCost: 0,
+    netProfit: 0,
+  });
+
+  const [constraints, setConstraints] = useState({
+    inventory: true,
+    production: true,
+    sales: true,
+    emissions: true,
+  });
+
+  useEffect(() => {
+    const {
+      sellingPrice,
+      manufacturingCostPercent,
+      storageCostPercent,
+      transportationCostPercent,
+      sustainabilityCostPerTonCO2,
+      co2EmissionFactor,
+      productionVolume,
+      salesVolume,
+      inventoryVolume,
+      transportedVolume,
+    } = inputs;
+
+    // Calculations
+    const revenue = sellingPrice * salesVolume;
+    const manufacturingCost = sellingPrice * (manufacturingCostPercent / 100) * productionVolume;
+    const storageCost = sellingPrice * (storageCostPercent / 100) * inventoryVolume;
+    const transportationCost = sellingPrice * (transportationCostPercent / 100) * transportedVolume;
+    const totalEmissions = co2EmissionFactor * (productionVolume + transportedVolume);
+    const sustainabilityCost = sustainabilityCostPerTonCO2 * totalEmissions;
+    const totalCost = manufacturingCost + storageCost + transportationCost + sustainabilityCost;
+    const netProfit = revenue - totalCost;
+
+    setResults({
+      revenue,
+      manufacturingCost,
+      storageCost,
+      transportationCost,
+      totalEmissions,
+      sustainabilityCost,
+      totalCost,
+      netProfit,
+    });
+
+    // Constraints
+    setConstraints({
+      inventory: inventoryVolume <= 60000,
+      production: productionVolume <= 60000,
+      sales: salesVolume <= 60000,
+      emissions: totalEmissions <= 150000,
+    });
+
+  }, [inputs]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setInputs(prev => ({ ...prev, [name]: value === '' ? 0 : parseFloat(value) }));
+  };
+
+  const renderConstraint = (label: string, value: number, limit: number, isOk: boolean, unit: string) => (
+    <div className="flex justify-between items-center text-sm">
+      <div className="flex items-center">
+        {isOk ? <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> : <AlertCircle className="h-4 w-4 mr-2 text-red-500" />}
+        <span className={isOk ? "text-muted-foreground" : "text-red-500 font-semibold"}>{label}</span>
+      </div>
+      <div className={isOk ? "text-muted-foreground" : "text-red-500 font-semibold"}>
+        {formatNumber(value)} / {formatNumber(limit)} {unit}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="container mx-auto p-4 md:p-8">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Steel Supply Chain Optimization Calculator</h1>
+        <p className="text-muted-foreground">Adjust parameters to analyze costs, profit, and operational constraints.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Input Parameters</CardTitle>
+              <CardDescription>Adjust the core financial and environmental model assumptions.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="sellingPrice">Selling Price per Ton (₹)</Label>
+                <Input type="number" id="sellingPrice" name="sellingPrice" value={inputs.sellingPrice} onChange={handleInputChange} />
+              </div>
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="manufacturingCostPercent">Manufacturing Cost (%)</Label>
+                <Input type="number" id="manufacturingCostPercent" name="manufacturingCostPercent" value={inputs.manufacturingCostPercent} onChange={handleInputChange} step="0.1" />
+              </div>
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="storageCostPercent">Storage/Holding Cost (%)</Label>
+                <Input type="number" id="storageCostPercent" name="storageCostPercent" value={inputs.storageCostPercent} onChange={handleInputChange} step="0.01" />
+              </div>
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="transportationCostPercent">Transportation Cost (%)</Label>
+                <Input type="number" id="transportationCostPercent" name="transportationCostPercent" value={inputs.transportationCostPercent} onChange={handleInputChange} step="0.1" />
+              </div>
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="sustainabilityCostPerTonCO2">Sustainability Cost per CO₂ Ton (₹)</Label>
+                <Input type="number" id="sustainabilityCostPerTonCO2" name="sustainabilityCostPerTonCO2" value={inputs.sustainabilityCostPerTonCO2} onChange={handleInputChange} />
+              </div>
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="co2EmissionFactor">CO₂ Emission Factor (CO₂/ton)</Label>
+                <Input type="number" id="co2EmissionFactor" name="co2EmissionFactor" value={inputs.co2EmissionFactor} onChange={handleInputChange} step="0.01" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Operational Inputs</CardTitle>
+              <CardDescription>Enter the volumes you want to test or optimize.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="productionVolume">Production Volume (Tons)</Label>
+                <Input type="number" id="productionVolume" name="productionVolume" value={inputs.productionVolume} onChange={handleInputChange} />
+              </div>
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="salesVolume">Sales Volume (Tons)</Label>
+                <Input type="number" id="salesVolume" name="salesVolume" value={inputs.salesVolume} onChange={handleInputChange} />
+              </div>
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="inventoryVolume">Inventory Volume (Tons)</Label>
+                <Input type="number" id="inventoryVolume" name="inventoryVolume" value={inputs.inventoryVolume} onChange={handleInputChange} />
+              </div>
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="transportedVolume">Transported Volume (Tons)</Label>
+                <Input type="number" id="transportedVolume" name="transportedVolume" value={inputs.transportedVolume} onChange={handleInputChange} />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-1 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Results</CardTitle>
+              <CardDescription>Calculated costs and profit based on your inputs.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between font-semibold">
+                    <span>Total Revenue</span>
+                    <span>{formatCurrency(results.revenue)}</span>
+                </div>
+                <Separator />
+                <div className="text-muted-foreground space-y-1 pt-1">
+                    <div className="flex justify-between"><span>Manufacturing Cost</span><span>{formatCurrency(results.manufacturingCost)}</span></div>
+                    <div className="flex justify-between"><span>Storage Cost</span><span>{formatCurrency(results.storageCost)}</span></div>
+                    <div className="flex justify-between"><span>Transportation Cost</span><span>{formatCurrency(results.transportationCost)}</span></div>
+                    <div className="flex justify-between"><span>Sustainability Cost</span><span>{formatCurrency(results.sustainabilityCost)}</span></div>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-semibold pt-1">
+                    <span>Total Cost</span>
+                    <span>{formatCurrency(results.totalCost)}</span>
+                </div>
+                <Separator />
+                <div className={`flex justify-between font-bold text-lg pt-1 ${results.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span>Net Profit</span>
+                    <span>{formatCurrency(results.netProfit)}</span>
+                </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Constraints Checker</CardTitle>
+              <CardDescription>Feasibility of the current operational inputs.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {renderConstraint("Production Volume", inputs.productionVolume, 60000, constraints.production, "tons")}
+              {renderConstraint("Sales Volume", inputs.salesVolume, 60000, constraints.sales, "tons")}
+              {renderConstraint("Inventory Space", inputs.inventoryVolume, 60000, constraints.inventory, "tons")}
+              {renderConstraint("Total CO₂ Emission", results.totalEmissions, 150000, constraints.emissions, "tons CO₂")}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
