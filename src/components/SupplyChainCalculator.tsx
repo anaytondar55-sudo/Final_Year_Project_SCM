@@ -33,7 +33,6 @@ export function SupplyChainCalculator() {
     productionVolume: 50000,
     salesVolume: 50000,
     inventoryVolume: 10000,
-    transportedVolume: 50000,
   });
 
   const [storageCostMode, setStorageCostMode] = useState<'percent' | 'value'>('percent');
@@ -68,15 +67,14 @@ export function SupplyChainCalculator() {
       productionVolume,
       salesVolume,
       inventoryVolume,
-      transportedVolume,
     } = inputs;
 
     // Calculations
     const revenue = sellingPrice * salesVolume;
     const manufacturingCost = manufacturingCostPerTon * productionVolume;
     const storageCost = sellingPrice * (storageCostPercent / 100) * inventoryVolume;
-    const transportationCost = sellingPrice * (transportationCostPercent / 100) * transportedVolume;
-    const totalEmissions = co2EmissionFactor * (productionVolume + transportedVolume);
+    const transportationCost = sellingPrice * (transportationCostPercent / 100) * productionVolume;
+    const totalEmissions = co2EmissionFactor * (productionVolume + productionVolume);
     const sustainabilityCost = sustainabilityCostPerTonCO2 * totalEmissions;
     const totalCost = manufacturingCost + storageCost + transportationCost + sustainabilityCost;
     const netProfit = revenue - totalCost;
@@ -159,7 +157,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Input Parameters</CardTitle>
               <CardDescription>Adjust the core financial and environmental model assumptions.</CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent className="space-y-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="sellingPrice">Selling Price per Ton (₹)</Label>
@@ -219,7 +217,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Operational Inputs</CardTitle>
               <CardDescription>Enter the volumes you want to test or optimize.</CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent className="space-y-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="productionVolume">Production Volume (Tons)</Label>
@@ -232,10 +230,6 @@ export function SupplyChainCalculator() {
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="inventoryVolume">Inventory Volume (Tons)</Label>
                 <Input type="number" id="inventoryVolume" name="inventoryVolume" value={inputs.inventoryVolume} onChange={handleInputChange} />
-              </div>
-              <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="transportedVolume">Transported Volume (Tons)</Label>
-                <Input type="number" id="transportedVolume" name="transportedVolume" value={inputs.transportedVolume} onChange={handleInputChange} />
               </div>
             </CardContent>
           </Card>
@@ -276,7 +270,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Constraints Checker</CardTitle>
               <CardDescription>Feasibility of the current operational inputs.</CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent className="space-y-3">
               {renderConstraint("Production Volume", inputs.productionVolume, 60000, constraints.production, "tons")}
               {renderConstraint("Sales Volume", inputs.salesVolume, 60000, constraints.sales, "tons")}
