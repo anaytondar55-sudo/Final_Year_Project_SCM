@@ -31,8 +31,8 @@ export function SupplyChainCalculator() {
     productionVolume: 50000,
     salesVolume: 50000,
     salesVolumePercent: 100,
-    inventoryVolume: 10000,
-    inventoryVolumePercent: 20,
+    inventoryVolume: 0,
+    inventoryVolumePercent: 0,
   });
 
   const [salesVolumeMode, setSalesVolumeMode] = useState<'tons' | 'percent'>('tons');
@@ -105,19 +105,43 @@ export function SupplyChainCalculator() {
     const numericValue = value === '' ? 0 : parseFloat(value);
 
     setInputs(prev => {
-      const newInputs = { ...prev, [name]: numericValue };
+      const newInputs = { ...prev };
 
+      // Apply the change from the input field first
+      (newInputs as any)[name] = numericValue;
+
+      // Now, enforce the relationships based on which input was changed
       if (name === 'productionVolume') {
-        newInputs.salesVolume = numericValue * (newInputs.salesVolumePercent / 100);
-        newInputs.inventoryVolume = numericValue * (newInputs.inventoryVolumePercent / 100);
+        // When production changes, maintain the sales percentage and recalculate sales and inventory
+        newInputs.salesVolume = newInputs.productionVolume * (prev.salesVolumePercent / 100);
+        newInputs.inventoryVolume = newInputs.productionVolume - newInputs.salesVolume;
       } else if (name === 'salesVolume') {
-        newInputs.salesVolumePercent = prev.productionVolume > 0 ? (numericValue / prev.productionVolume) * 100 : 0;
+        // When sales (tons) changes, inventory is the remainder
+        newInputs.inventoryVolume = newInputs.productionVolume - newInputs.salesVolume;
       } else if (name === 'salesVolumePercent') {
-        newInputs.salesVolume = prev.productionVolume * (numericValue / 100);
+        // When sales (%) changes, calculate sales (tons), then inventory is the remainder
+        newInputs.salesVolume = newInputs.productionVolume * (newInputs.salesVolumePercent / 100);
+        newInputs.inventoryVolume = newInputs.productionVolume - newInputs.salesVolume;
       } else if (name === 'inventoryVolume') {
-        newInputs.inventoryVolumePercent = prev.productionVolume > 0 ? (numericValue / prev.productionVolume) * 100 : 0;
+        // When inventory (tons) changes, sales is the remainder
+        newInputs.salesVolume = newInputs.productionVolume - newInputs.inventoryVolume;
       } else if (name === 'inventoryVolumePercent') {
-        newInputs.inventoryVolume = prev.productionVolume * (numericValue / 100);
+        // When inventory (%) changes, calculate inventory (tons), then sales is the remainder
+        newInputs.inventoryVolume = newInputs.productionVolume * (newInputs.inventoryVolumePercent / 100);
+        newInputs.salesVolume = newInputs.productionVolume - newInputs.inventoryVolume;
+      }
+
+      // After any volume change, recalculate all percentages to keep the UI in sync
+      if (['productionVolume', 'salesVolume', 'salesVolumePercent', 'inventoryVolume', 'inventoryVolumePercent'].includes(name)) {
+        if (newInputs.productionVolume > 0) {
+          newInputs.salesVolumePercent = (newInputs.salesVolume / newInputs.productionVolume) * 100;
+          newInputs.inventoryVolumePercent = (newInputs.inventoryVolume / newInputs.productionVolume) * 100;
+        } else {
+          newInputs.salesVolume = 0;
+          newInputs.inventoryVolume = 0;
+          newInputs.salesVolumePercent = 0;
+          newInputs.inventoryVolumePercent = 0;
+        }
       }
       
       return newInputs;
@@ -159,7 +183,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Input Parameters</CardTitle>
               <CardDescription>Adjust the core financial and environmental model assumptions.</CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent className="space-y-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="sellingPrice">Selling Price per Ton (₹)</Label>
@@ -192,7 +216,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Operational Inputs</CardTitle>
               <CardDescription>Enter the volumes you want to test or optimize.</CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent className="space-y-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="productionVolume">Production Volume (Tons)</Label>
@@ -241,7 +265,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Results</CardTitle>
               <CardDescription>Calculated costs and profit based on your inputs.</CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between font-semibold">
                     <span>Total Revenue</span>
@@ -271,7 +295,7 @@ export function SupplyChainCalculator() {
             <CardHeader>
               <CardTitle>Constraints Checker</CardTitle>
               <CardDescription>Feasibility of the current operational inputs.</CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent className="space-y-3">
               {renderConstraint("Production Volume", inputs.productionVolume, 60000, constraints.production, "tons")}
               {renderConstraint("Sales Volume", inputs.salesVolume, 60000, constraints.sales, "tons")}
