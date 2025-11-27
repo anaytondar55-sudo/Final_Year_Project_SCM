@@ -25,18 +25,18 @@ export function SupplyChainCalculator() {
     sellingPrice: 40000,
     manufacturingCostPerTon: 36600,
     storageCostPercent: 1.75,
-    storageCostValue: 700, // 1.75% of 40000
     transportationCostPercent: 1.3,
-    transportationCostValue: 520, // 1.3% of 40000
     sustainabilityCostPerTonCO2: 300,
     co2EmissionFactor: 2.53,
     productionVolume: 50000,
     salesVolume: 50000,
+    salesVolumePercent: 100,
     inventoryVolume: 10000,
+    inventoryVolumePercent: 20,
   });
 
-  const [storageCostMode, setStorageCostMode] = useState<'percent' | 'value'>('percent');
-  const [transportationCostMode, setTransportationCostMode] = useState<'percent' | 'value'>('percent');
+  const [salesVolumeMode, setSalesVolumeMode] = useState<'tons' | 'percent'>('tons');
+  const [inventoryVolumeMode, setInventoryVolumeMode] = useState<'tons' | 'percent'>('tons');
 
   const [results, setResults] = useState({
     revenue: 0,
@@ -74,7 +74,7 @@ export function SupplyChainCalculator() {
     const manufacturingCost = manufacturingCostPerTon * productionVolume;
     const storageCost = sellingPrice * (storageCostPercent / 100) * inventoryVolume;
     const transportationCost = sellingPrice * (transportationCostPercent / 100) * productionVolume;
-    const totalEmissions = co2EmissionFactor * (productionVolume + productionVolume);
+    const totalEmissions = co2EmissionFactor * productionVolume;
     const sustainabilityCost = sustainabilityCostPerTonCO2 * totalEmissions;
     const totalCost = manufacturingCost + storageCost + transportationCost + sustainabilityCost;
     const netProfit = revenue - totalCost;
@@ -107,29 +107,29 @@ export function SupplyChainCalculator() {
     setInputs(prev => {
       const newInputs = { ...prev, [name]: numericValue };
 
-      if (name === 'sellingPrice') {
-        newInputs.storageCostValue = numericValue * (newInputs.storageCostPercent / 100);
-        newInputs.transportationCostValue = numericValue * (newInputs.transportationCostPercent / 100);
-      } else if (name === 'storageCostPercent') {
-        newInputs.storageCostValue = prev.sellingPrice * (numericValue / 100);
-      } else if (name === 'storageCostValue') {
-        newInputs.storageCostPercent = prev.sellingPrice > 0 ? (numericValue / prev.sellingPrice) * 100 : 0;
-      } else if (name === 'transportationCostPercent') {
-        newInputs.transportationCostValue = prev.sellingPrice * (numericValue / 100);
-      } else if (name === 'transportationCostValue') {
-        newInputs.transportationCostPercent = prev.sellingPrice > 0 ? (numericValue / prev.sellingPrice) * 100 : 0;
+      if (name === 'productionVolume') {
+        newInputs.salesVolume = numericValue * (newInputs.salesVolumePercent / 100);
+        newInputs.inventoryVolume = numericValue * (newInputs.inventoryVolumePercent / 100);
+      } else if (name === 'salesVolume') {
+        newInputs.salesVolumePercent = prev.productionVolume > 0 ? (numericValue / prev.productionVolume) * 100 : 0;
+      } else if (name === 'salesVolumePercent') {
+        newInputs.salesVolume = prev.productionVolume * (numericValue / 100);
+      } else if (name === 'inventoryVolume') {
+        newInputs.inventoryVolumePercent = prev.productionVolume > 0 ? (numericValue / prev.productionVolume) * 100 : 0;
+      } else if (name === 'inventoryVolumePercent') {
+        newInputs.inventoryVolume = prev.productionVolume * (numericValue / 100);
       }
       
       return newInputs;
     });
   };
 
-  const handleStorageModeChange = (mode: 'percent' | 'value') => {
-    if (mode) setStorageCostMode(mode);
+  const handleSalesModeChange = (mode: 'tons' | 'percent') => {
+    if (mode) setSalesVolumeMode(mode);
   };
 
-  const handleTransportationModeChange = (mode: 'percent' | 'value') => {
-    if (mode) setTransportationCostMode(mode);
+  const handleInventoryModeChange = (mode: 'tons' | 'percent') => {
+    if (mode) setInventoryVolumeMode(mode);
   };
 
   const renderConstraint = (label: string, value: number, limit: number, isOk: boolean, unit: string) => (
@@ -167,41 +167,14 @@ export function SupplyChainCalculator() {
                 <Label htmlFor="manufacturingCostPerTon">Manufacturing Cost per Ton (₹)</Label>
                 <Input type="number" id="manufacturingCostPerTon" name="manufacturingCostPerTon" value={inputs.manufacturingCostPerTon} onChange={handleInputChange} />
               </div>
-              
               <div className="grid w-full items-center gap-1.5">
-                <div className="flex justify-between items-center mb-1">
-                  <Label htmlFor={storageCostMode === 'percent' ? 'storageCostPercent' : 'storageCostValue'}>
-                    Storage/Holding Cost
-                  </Label>
-                  <ToggleGroup type="single" size="sm" value={storageCostMode} onValueChange={handleStorageModeChange} className="border rounded-md">
-                    <ToggleGroupItem value="percent" aria-label="Set as percentage">%</ToggleGroupItem>
-                    <ToggleGroupItem value="value" aria-label="Set as value">₹</ToggleGroupItem>
-                  </ToggleGroup>
-                </div>
-                {storageCostMode === 'percent' ? (
-                  <Input type="number" id="storageCostPercent" name="storageCostPercent" value={inputs.storageCostPercent} onChange={handleInputChange} step="0.01" />
-                ) : (
-                  <Input type="number" id="storageCostValue" name="storageCostValue" value={inputs.storageCostValue} onChange={handleInputChange} />
-                )}
+                <Label htmlFor="storageCostPercent">Storage/Holding Cost (%)</Label>
+                <Input type="number" id="storageCostPercent" name="storageCostPercent" value={inputs.storageCostPercent} onChange={handleInputChange} step="0.01" />
               </div>
-
               <div className="grid w-full items-center gap-1.5">
-                <div className="flex justify-between items-center mb-1">
-                  <Label htmlFor={transportationCostMode === 'percent' ? 'transportationCostPercent' : 'transportationCostValue'}>
-                    Transportation Cost
-                  </Label>
-                  <ToggleGroup type="single" size="sm" value={transportationCostMode} onValueChange={handleTransportationModeChange} className="border rounded-md">
-                    <ToggleGroupItem value="percent" aria-label="Set as percentage">%</ToggleGroupItem>
-                    <ToggleGroupItem value="value" aria-label="Set as value">₹</ToggleGroupItem>
-                  </ToggleGroup>
-                </div>
-                {transportationCostMode === 'percent' ? (
-                  <Input type="number" id="transportationCostPercent" name="transportationCostPercent" value={inputs.transportationCostPercent} onChange={handleInputChange} step="0.1" />
-                ) : (
-                  <Input type="number" id="transportationCostValue" name="transportationCostValue" value={inputs.transportationCostValue} onChange={handleInputChange} />
-                )}
+                <Label htmlFor="transportationCostPercent">Transportation Cost (%)</Label>
+                <Input type="number" id="transportationCostPercent" name="transportationCostPercent" value={inputs.transportationCostPercent} onChange={handleInputChange} step="0.1" />
               </div>
-
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="sustainabilityCostPerTonCO2">Sustainability Cost per CO₂ Ton (₹)</Label>
                 <Input type="number" id="sustainabilityCostPerTonCO2" name="sustainabilityCostPerTonCO2" value={inputs.sustainabilityCostPerTonCO2} onChange={handleInputChange} />
@@ -223,13 +196,39 @@ export function SupplyChainCalculator() {
                 <Label htmlFor="productionVolume">Production Volume (Tons)</Label>
                 <Input type="number" id="productionVolume" name="productionVolume" value={inputs.productionVolume} onChange={handleInputChange} />
               </div>
+              
               <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="salesVolume">Sales Volume (Tons)</Label>
-                <Input type="number" id="salesVolume" name="salesVolume" value={inputs.salesVolume} onChange={handleInputChange} />
+                <div className="flex justify-between items-center mb-1">
+                  <Label htmlFor={salesVolumeMode === 'tons' ? 'salesVolume' : 'salesVolumePercent'}>
+                    Sales Volume
+                  </Label>
+                  <ToggleGroup type="single" size="sm" value={salesVolumeMode} onValueChange={handleSalesModeChange} className="border rounded-md">
+                    <ToggleGroupItem value="tons" aria-label="Set as tons">Tons</ToggleGroupItem>
+                    <ToggleGroupItem value="percent" aria-label="Set as percentage">%</ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+                {salesVolumeMode === 'tons' ? (
+                  <Input type="number" id="salesVolume" name="salesVolume" value={inputs.salesVolume} onChange={handleInputChange} />
+                ) : (
+                  <Input type="number" id="salesVolumePercent" name="salesVolumePercent" value={inputs.salesVolumePercent} onChange={handleInputChange} step="0.1" />
+                )}
               </div>
+
               <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="inventoryVolume">Inventory Volume (Tons)</Label>
-                <Input type="number" id="inventoryVolume" name="inventoryVolume" value={inputs.inventoryVolume} onChange={handleInputChange} />
+                <div className="flex justify-between items-center mb-1">
+                  <Label htmlFor={inventoryVolumeMode === 'tons' ? 'inventoryVolume' : 'inventoryVolumePercent'}>
+                    Inventory Volume
+                  </Label>
+                  <ToggleGroup type="single" size="sm" value={inventoryVolumeMode} onValueChange={handleInventoryModeChange} className="border rounded-md">
+                    <ToggleGroupItem value="tons" aria-label="Set as tons">Tons</ToggleGroupItem>
+                    <ToggleGroupItem value="percent" aria-label="Set as percentage">%</ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+                {inventoryVolumeMode === 'tons' ? (
+                  <Input type="number" id="inventoryVolume" name="inventoryVolume" value={inputs.inventoryVolume} onChange={handleInputChange} />
+                ) : (
+                  <Input type="number" id="inventoryVolumePercent" name="inventoryVolumePercent" value={inputs.inventoryVolumePercent} onChange={handleInputChange} step="0.1" />
+                )}
               </div>
             </CardContent>
           </Card>
