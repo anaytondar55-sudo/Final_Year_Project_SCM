@@ -10,6 +10,25 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Button } from "@/components/ui/button";
 import { SettingsSheet } from "./SettingsSheet";
 import { SheetTrigger } from "@/components/ui/sheet";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Label as RechartsLabel,
+} from "recharts";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-IN', {
@@ -26,7 +45,7 @@ const formatNumber = (value: number) => {
 export function SupplyChainCalculator() {
   const [inputs, setInputs] = useState({
     sellingPrice: 40000,
-    manufacturingCostPerTon: 36600,
+    manufacturingCostPerTon: 29000,
     storageCostPercent: 1.75,
     transportationCostPercent: 1.3,
     sustainabilityCostPerTonCO2: 300,
@@ -66,6 +85,8 @@ export function SupplyChainCalculator() {
     sales: true,
     emissions: true,
   });
+
+  const [analysisData, setAnalysisData] = useState<any[]>([]);
 
   useEffect(() => {
     const {
@@ -108,6 +129,55 @@ export function SupplyChainCalculator() {
     });
 
   }, [inputs, hyperparameters]);
+
+  useEffect(() => {
+    const calculateAnalysisData = () => {
+      const data = [];
+      const {
+        sellingPrice,
+        manufacturingCostPerTon,
+        storageCostPercent,
+        transportationCostPercent,
+        sustainabilityCostPerTonCO2,
+        co2EmissionFactor,
+        productionVolume,
+      } = inputs;
+
+      if (productionVolume === 0) {
+        setAnalysisData([]);
+        return;
+      }
+
+      for (let salesPercent = 65; salesPercent <= 100; salesPercent += 1) {
+        const salesVolume = productionVolume * (salesPercent / 100);
+        const inventoryVolume = productionVolume - salesVolume;
+
+        const revenue = sellingPrice * salesVolume;
+        const manufacturingCost = manufacturingCostPerTon * productionVolume;
+        const storageCost = sellingPrice * (storageCostPercent / 100) * inventoryVolume;
+        const transportationCost = sellingPrice * (transportationCostPercent / 100) * productionVolume;
+        const totalEmissions = co2EmissionFactor * productionVolume;
+        const sustainabilityCost = sustainabilityCostPerTonCO2 * totalEmissions;
+        const totalCost = manufacturingCost + storageCost + transportationCost + sustainabilityCost;
+        const netProfit = revenue - totalCost;
+
+        data.push({
+          salesPercent,
+          productionVolume,
+          salesVolume,
+          manufacturingCost,
+          sustainabilityCost,
+          totalCost,
+          revenue,
+          netProfit,
+          totalEmissions,
+        });
+      }
+      setAnalysisData(data);
+    };
+
+    calculateAnalysisData();
+  }, [inputs]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -342,6 +412,83 @@ export function SupplyChainCalculator() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      <div className="mt-8 grid grid-cols-1 gap-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profitability Analysis</CardTitle>
+            <CardDescription>
+              Net profit, total cost, and revenue based on sales percentage (for current production volume).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={analysisData} margin={{ top: 5, right: 20, left: 50, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="salesPercent" 
+                  unit="%"
+                >
+                  <RechartsLabel value="Sales Percentage (%)" position="insideBottom" offset={-15} />
+                </XAxis>
+                <YAxis 
+                  tickFormatter={(value) => new Intl.NumberFormat('en-IN', { notation: 'compact', compactDisplay: 'short' }).format(value)}
+                >
+                  <RechartsLabel value="Amount (INR)" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
+                </YAxis>
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '20px' }} />
+                <Line type="monotone" dataKey="netProfit" name="Net Profit" stroke="#16a34a" activeDot={{ r: 6 }} strokeWidth={2} />
+                <Line type="monotone" dataKey="totalCost" name="Total Cost" stroke="#dc2626" strokeWidth={2} />
+                <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#2563eb" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Detailed Analysis Data</CardTitle>
+            <CardDescription>
+              Breakdown of financials and emissions at different sales percentages.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="max-h-96 overflow-y-auto relative">
+              <Table>
+                <TableHeader className="sticky top-0 bg-background">
+                  <TableRow>
+                    <TableHead>Sales %</TableHead>
+                    <TableHead>Production (tons)</TableHead>
+                    <TableHead>Sales (tons)</TableHead>
+                    <TableHead>Manufacturing Cost</TableHead>
+                    <TableHead>Sustainable Cost</TableHead>
+                    <TableHead>Total Cost</TableHead>
+                    <TableHead>Revenue</TableHead>
+                    <TableHead>Profit</TableHead>
+                    <TableHead>Emissions (tons CO₂)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {analysisData.map((data) => (
+                    <TableRow key={data.salesPercent}>
+                      <TableCell className="font-medium">{data.salesPercent}%</TableCell>
+                      <TableCell>{formatNumber(data.productionVolume)}</TableCell>
+                      <TableCell>{formatNumber(data.salesVolume)}</TableCell>
+                      <TableCell>{formatCurrency(data.manufacturingCost)}</TableCell>
+                      <TableCell>{formatCurrency(data.sustainabilityCost)}</TableCell>
+                      <TableCell>{formatCurrency(data.totalCost)}</TableCell>
+                      <TableCell>{formatCurrency(data.revenue)}</TableCell>
+                      <TableCell className={data.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}>{formatCurrency(data.netProfit)}</TableCell>
+                      <TableCell>{formatNumber(data.totalEmissions)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
