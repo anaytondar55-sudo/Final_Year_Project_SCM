@@ -107,31 +107,23 @@ export function SupplyChainCalculator() {
     setInputs(prev => {
       const newInputs = { ...prev };
 
-      // Apply the change from the input field first
       (newInputs as any)[name] = numericValue;
 
-      // Now, enforce the relationships based on which input was changed
       if (name === 'productionVolume') {
-        // When production changes, maintain the sales percentage and recalculate sales and inventory
         newInputs.salesVolume = newInputs.productionVolume * (prev.salesVolumePercent / 100);
         newInputs.inventoryVolume = newInputs.productionVolume - newInputs.salesVolume;
       } else if (name === 'salesVolume') {
-        // When sales (tons) changes, inventory is the remainder
         newInputs.inventoryVolume = newInputs.productionVolume - newInputs.salesVolume;
       } else if (name === 'salesVolumePercent') {
-        // When sales (%) changes, calculate sales (tons), then inventory is the remainder
         newInputs.salesVolume = newInputs.productionVolume * (newInputs.salesVolumePercent / 100);
         newInputs.inventoryVolume = newInputs.productionVolume - newInputs.salesVolume;
       } else if (name === 'inventoryVolume') {
-        // When inventory (tons) changes, sales is the remainder
         newInputs.salesVolume = newInputs.productionVolume - newInputs.inventoryVolume;
       } else if (name === 'inventoryVolumePercent') {
-        // When inventory (%) changes, calculate inventory (tons), then sales is the remainder
         newInputs.inventoryVolume = newInputs.productionVolume * (newInputs.inventoryVolumePercent / 100);
         newInputs.salesVolume = newInputs.productionVolume - newInputs.inventoryVolume;
       }
 
-      // After any volume change, recalculate all percentages to keep the UI in sync
       if (['productionVolume', 'salesVolume', 'salesVolumePercent', 'inventoryVolume', 'inventoryVolumePercent'].includes(name)) {
         if (newInputs.productionVolume > 0) {
           newInputs.salesVolumePercent = (newInputs.salesVolume / newInputs.productionVolume) * 100;
@@ -155,20 +147,6 @@ export function SupplyChainCalculator() {
   const handleInventoryModeChange = (mode: 'tons' | 'percent') => {
     if (mode) setInventoryVolumeMode(mode);
   };
-
-  function renderConstraint(label: string, value: number, limit: number, isOk: boolean, unit: string) {
-    return (
-      <div className="flex justify-between items-center text-sm">
-        <div className="flex items-center">
-          {isOk ? <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> : <AlertCircle className="h-4 w-4 mr-2 text-red-500" />}
-          <span className={isOk ? "text-muted-foreground" : "text-red-500 font-semibold"}>{label}</span>
-        </div>
-        <div className={isOk ? "text-muted-foreground" : "text-red-500 font-semibold"}>
-          {formatNumber(value)} / {formatNumber(limit)} {unit}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -297,10 +275,42 @@ export function SupplyChainCalculator() {
               <CardDescription>Feasibility of the current operational inputs.</CardDescription>
             </Header>
             <CardContent className="space-y-3">
-              {renderConstraint("Production Volume", inputs.productionVolume, 60000, constraints.production, "tons")}
-              {renderConstraint("Sales Volume", inputs.salesVolume, 60000, constraints.sales, "tons")}
-              {renderConstraint("Inventory Space", inputs.inventoryVolume, 60000, constraints.inventory, "tons")}
-              {renderConstraint("Total CO₂ Emission", results.totalEmissions, 150000, constraints.emissions, "tons CO₂")}
+              <div className="flex justify-between items-center text-sm">
+                <div className="flex items-center">
+                  {constraints.production ? <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> : <AlertCircle className="h-4 w-4 mr-2 text-red-500" />}
+                  <span className={constraints.production ? "text-muted-foreground" : "text-red-500 font-semibold"}>Production Volume</span>
+                </div>
+                <div className={constraints.production ? "text-muted-foreground" : "text-red-500 font-semibold"}>
+                  {formatNumber(inputs.productionVolume)} / {formatNumber(60000)} tons
+                </div>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <div className="flex items-center">
+                  {constraints.sales ? <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> : <AlertCircle className="h-4 w-4 mr-2 text-red-500" />}
+                  <span className={constraints.sales ? "text-muted-foreground" : "text-red-500 font-semibold"}>Sales Volume</span>
+                </div>
+                <div className={constraints.sales ? "text-muted-foreground" : "text-red-500 font-semibold"}>
+                  {formatNumber(inputs.salesVolume)} / {formatNumber(60000)} tons
+                </div>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <div className="flex items-center">
+                  {constraints.inventory ? <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> : <AlertCircle className="h-4 w-4 mr-2 text-red-500" />}
+                  <span className={constraints.inventory ? "text-muted-foreground" : "text-red-500 font-semibold"}>Inventory Space</span>
+                </div>
+                <div className={constraints.inventory ? "text-muted-foreground" : "text-red-500 font-semibold"}>
+                  {formatNumber(inputs.inventoryVolume)} / {formatNumber(60000)} tons
+                </div>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <div className="flex items-center">
+                  {constraints.emissions ? <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> : <AlertCircle className="h-4 w-4 mr-2 text-red-500" />}
+                  <span className={constraints.emissions ? "text-muted-foreground" : "text-red-500 font-semibold"}>Total CO₂ Emission</span>
+                </div>
+                <div className={constraints.emissions ? "text-muted-foreground" : "text-red-500 font-semibold"}>
+                  {formatNumber(results.totalEmissions)} / {formatNumber(150000)} tons CO₂
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
